@@ -1,0 +1,16 @@
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Java / Maven / Gradle
+target/
+build/
+.gradle/
+
+# Node / React
+node_modules/
+dist/
+.env
+
+# Logs
+*.log

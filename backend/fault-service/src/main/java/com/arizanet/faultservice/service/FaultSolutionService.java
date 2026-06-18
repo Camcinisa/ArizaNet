@@ -1,8 +1,11 @@
 package com.arizanet.faultservice.service;
 
+import com.arizanet.faultservice.dto.request.CreateFaultSolutionRequest;
 import com.arizanet.faultservice.dto.response.FaultSolutionDetailResponse;
 import com.arizanet.faultservice.dto.response.FaultSolutionListResponse;
+import com.arizanet.faultservice.entity.DeviceModel;
 import com.arizanet.faultservice.entity.FaultSolution;
+import com.arizanet.faultservice.repository.DeviceModelRepository;
 import com.arizanet.faultservice.repository.FaultSolutionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +17,7 @@ import java.util.List;
 public class FaultSolutionService {
 
     private final FaultSolutionRepository faultSolutionRepository;
+    private final DeviceModelRepository deviceModelRepository;
 
     public List<FaultSolutionListResponse> getAllFaultSolutions() {
         return faultSolutionRepository.findAll()
@@ -34,6 +38,25 @@ public class FaultSolutionService {
                 .stream()
                 .map(this::mapToListResponse)
                 .toList();
+    }
+
+    public FaultSolutionDetailResponse createFaultSolution(CreateFaultSolutionRequest request) {
+        DeviceModel deviceModel = deviceModelRepository.findById(request.getDeviceModelId())
+                .orElseThrow(() -> new RuntimeException("Cihaz modeli bulunamadı. ID: " + request.getDeviceModelId()));
+
+        FaultSolution faultSolution = new FaultSolution();
+        faultSolution.setDeviceModel(deviceModel);
+        faultSolution.setErrorCode(request.getErrorCode());
+        faultSolution.setTitle(request.getTitle());
+        faultSolution.setDescription(request.getDescription());
+        faultSolution.setPossibleCauses(request.getPossibleCauses());
+        faultSolution.setSolutionSteps(request.getSolutionSteps());
+        faultSolution.setRequiredTools(request.getRequiredTools());
+        faultSolution.setWarnings(request.getWarnings());
+
+        FaultSolution savedFaultSolution = faultSolutionRepository.save(faultSolution);
+
+        return mapToDetailResponse(savedFaultSolution);
     }
 
     private FaultSolutionListResponse mapToListResponse(FaultSolution faultSolution) {

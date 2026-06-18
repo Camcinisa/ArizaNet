@@ -1,6 +1,5 @@
 package com.arizanet.auth.dto.request;
 public class LoginRequest {
-
     private String username;
     private String password;
     public LoginRequest() {

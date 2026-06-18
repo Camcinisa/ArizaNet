@@ -3,7 +3,6 @@ public class LoginResponse {
     private String token;
     private String fullName;
     private String role;
-
     public LoginResponse() {
     }
     public LoginResponse(String token, String fullName, String role) {

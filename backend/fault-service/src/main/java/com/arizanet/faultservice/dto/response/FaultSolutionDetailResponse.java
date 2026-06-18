@@ -1,14 +1,14 @@
-package com.arizanet.auth.dto.response;
+package com.arizanet.faultservice.dto.response;
+
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
+
 @Getter
 @Setter
 @AllArgsConstructor
-@Builder
 public class FaultSolutionDetailResponse {
+
     private Long id;
     private String deviceModel;
     private String errorCode;
@@ -18,6 +18,4 @@ public class FaultSolutionDetailResponse {
     private String solutionSteps;
     private String requiredTools;
     private String warnings;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 }

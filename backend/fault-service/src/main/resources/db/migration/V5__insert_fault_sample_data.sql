@@ -5,11 +5,6 @@ VALUES
     ('Balyalama Makinesi', 'Para veya evrak balyalama işlemlerinde kullanılan cihaz'),
     ('Bantlama Makinesi', 'Banknot veya evrak bantlama işlemlerinde kullanılan cihaz');
 
-INSERT INTO users (full_name, username, password_hash, role)
-VALUES
-    ('Admin User', 'admin', '123456', 'Admin'),
-    ('Normal User', 'user', '123456', 'User');
-
 INSERT INTO fault_solutions (
     device_model_id,
     error_code,

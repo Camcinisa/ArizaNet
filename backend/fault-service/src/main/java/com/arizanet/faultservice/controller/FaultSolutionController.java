@@ -1,5 +1,6 @@
 package com.arizanet.faultservice.controller;
 import com.arizanet.faultservice.dto.request.CreateFaultSolutionRequest;
+import com.arizanet.faultservice.dto.request.UpdateFaultSolutionRequest;
 import com.arizanet.faultservice.dto.response.FaultSolutionDetailResponse;
 import com.arizanet.faultservice.dto.response.FaultSolutionListResponse;
 import com.arizanet.faultservice.service.FaultSolutionService;
@@ -31,5 +32,16 @@ public class FaultSolutionController {
     public FaultSolutionDetailResponse createFaultSolution(
             @Valid @RequestBody CreateFaultSolutionRequest request) {
         return faultSolutionService.createFaultSolution(request);
+    }
+    @PutMapping("/{id}")
+    public FaultSolutionDetailResponse updateFaultSolution(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateFaultSolutionRequest request) {
+        return faultSolutionService.updateFaultSolution(id, request);
+    }
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteFaultSolution(@PathVariable Long id) {
+        faultSolutionService.deleteFaultSolution(id);
     }
 }

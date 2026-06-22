@@ -1,6 +1,7 @@
 package com.arizanet.faultservice.service;
 
 import com.arizanet.faultservice.dto.request.CreateFaultSolutionRequest;
+import com.arizanet.faultservice.dto.request.UpdateFaultSolutionRequest;
 import com.arizanet.faultservice.dto.response.FaultSolutionDetailResponse;
 import com.arizanet.faultservice.dto.response.FaultSolutionListResponse;
 import com.arizanet.faultservice.entity.DeviceModel;
@@ -57,6 +58,34 @@ public class FaultSolutionService {
         FaultSolution savedFaultSolution = faultSolutionRepository.save(faultSolution);
 
         return mapToDetailResponse(savedFaultSolution);
+    }
+
+    public FaultSolutionDetailResponse updateFaultSolution(Long id, UpdateFaultSolutionRequest request) {
+        FaultSolution faultSolution = faultSolutionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hata kaydı bulunamadı. ID: " + id));
+
+        DeviceModel deviceModel = deviceModelRepository.findById(request.getDeviceModelId())
+                .orElseThrow(() -> new RuntimeException("Cihaz modeli bulunamadı. ID: " + request.getDeviceModelId()));
+
+        faultSolution.setDeviceModel(deviceModel);
+        faultSolution.setErrorCode(request.getErrorCode());
+        faultSolution.setTitle(request.getTitle());
+        faultSolution.setDescription(request.getDescription());
+        faultSolution.setPossibleCauses(request.getPossibleCauses());
+        faultSolution.setSolutionSteps(request.getSolutionSteps());
+        faultSolution.setRequiredTools(request.getRequiredTools());
+        faultSolution.setWarnings(request.getWarnings());
+
+        FaultSolution updatedFaultSolution = faultSolutionRepository.save(faultSolution);
+
+        return mapToDetailResponse(updatedFaultSolution);
+    }
+
+    public void deleteFaultSolution(Long id) {
+        FaultSolution faultSolution = faultSolutionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Hata kaydı bulunamadı. ID: " + id));
+
+        faultSolutionRepository.delete(faultSolution);
     }
 
     private FaultSolutionListResponse mapToListResponse(FaultSolution faultSolution) {

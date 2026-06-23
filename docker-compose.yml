@@ -92,5 +92,24 @@ services:
     ports:
       - "${USER_SERVICE_PORT}:8083"
 
+  solution-tracking-service:
+    build:
+      context: ./backend/solution-tracking-service
+      dockerfile: Dockerfile
+    container_name: arizanet-solution-tracking-service
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    restart: on-failure
+    environment:
+      DB_HOST: arizanet-db
+      DB_PORT: 1433
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SOLUTION_TRACKING_SERVICE_PORT: 8084
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${SOLUTION_TRACKING_SERVICE_PORT}:8084"
 volumes:
   arizanet_db_data:

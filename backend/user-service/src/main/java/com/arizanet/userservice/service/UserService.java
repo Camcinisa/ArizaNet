@@ -66,7 +66,9 @@ public class UserService {
 
         user.setActive(request.getActive());
 
-        if (Boolean.FALSE.equals(request.getActive())) {
+        if (Boolean.TRUE.equals(request.getActive())) {
+            user.setStatus("Aktif");
+        } else {
             user.setStatus("Pasif");
         }
 

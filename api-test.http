@@ -1,0 +1,46 @@
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "atakan",
+  "password": "577606Yagmur."
+}
+
+### Auth service test through api-gateway
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "atakan",
+  "password": "577606Yagmur."
+}
+
+
+### Device service test through api-gateway
+GET http://localhost:8080/api/device-models
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdGFrYW4iLCJyb2xlIjoiVXNlciIsImlhdCI6MTc4MjMwMzU4NywiZXhwIjoxNzgyMzg5OTg3fQ.PydgKKSC2KXJD8qlNjvwEnXQzgZQPUMesNKwQix7a-Q
+
+### Admin login through api-gateway
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "ozden",
+  "password": "yucel25"
+}
+
+### Report service test through api-gateway
+GET http://localhost:8080/api/reports/summary
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvemRlbiIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc4MjMwNDUxMSwiZXhwIjoxNzgyMzkwOTExfQ.yHG01f6uE6jDg4xN4YlWAJzJHYJsI5WWna0rW12GXos
+
+### Solution tracking service test through api-gateway
+GET http://localhost:8080/api/solution-tracking
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdGFrYW4iLCJyb2xlIjoiVXNlciIsImlhdCI6MTc4MjMwMzU4NywiZXhwIjoxNzgyMzg5OTg3fQ.PydgKKSC2KXJD8qlNjvwEnXQzgZQPUMesNKwQix7a-Q
+
+### Fault service test through api-gateway
+GET http://localhost:8080/api/fault-solutions
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhdGFrYW4iLCJyb2xlIjoiVXNlciIsImlhdCI6MTc4MjMwMzU4NywiZXhwIjoxNzgyMzg5OTg3fQ.PydgKKSC2KXJD8qlNjvwEnXQzgZQPUMesNKwQix7a-Q
+
+### User service test through api-gateway
+GET http://localhost:8080/api/users
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJvemRlbiIsInJvbGUiOiJBZG1pbiIsImlhdCI6MTc4MjMwNDUxMSwiZXhwIjoxNzgyMzkwOTExfQ.yHG01f6uE6jDg4xN4YlWAJzJHYJsI5WWna0rW12GXos

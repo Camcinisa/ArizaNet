@@ -151,5 +151,41 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${DEVICE_SERVICE_PORT}:8086"
+
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: arizanet-api-gateway
+    depends_on:
+      - auth-service
+      - fault-service
+      - user-service
+      - solution-tracking-service
+      - report-service
+      - device-service
+    restart: on-failure
+    environment:
+      API_GATEWAY_PORT: 8080
+
+      AUTH_SERVICE_HOST: auth-service
+      AUTH_SERVICE_PORT: 8081
+
+      FAULT_SERVICE_HOST: fault-service
+      FAULT_SERVICE_PORT: 8082
+
+      USER_SERVICE_HOST: user-service
+      USER_SERVICE_PORT: 8083
+
+      SOLUTION_TRACKING_SERVICE_HOST: solution-tracking-service
+      SOLUTION_TRACKING_SERVICE_PORT: 8084
+
+      REPORT_SERVICE_HOST: report-service
+      REPORT_SERVICE_PORT: 8085
+
+      DEVICE_SERVICE_HOST: device-service
+      DEVICE_SERVICE_PORT: 8086
+    ports:
+      - "${API_GATEWAY_PORT}:8080"
 volumes:
   arizanet_db_data:

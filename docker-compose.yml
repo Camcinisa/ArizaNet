@@ -131,5 +131,25 @@ services:
       JWT_SECRET: ${JWT_SECRET}
     ports:
       - "${REPORT_SERVICE_PORT}:8085"
+
+  device-service:
+    build:
+      context: ./backend/device-service
+      dockerfile: Dockerfile
+    container_name: arizanet-device-service
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    restart: on-failure
+    environment:
+      DB_HOST: arizanet-db
+      DB_PORT: 1433
+      DB_NAME: ${DB_NAME}
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DEVICE_SERVICE_PORT: 8086
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "${DEVICE_SERVICE_PORT}:8086"
 volumes:
   arizanet_db_data:

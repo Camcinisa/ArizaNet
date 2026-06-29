@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import LoginPage from "../features/auth/pages/LoginPage";
-import MainLayout from "./MainLayout";
+import FaultSearchPage from "../features/fault/pages/FaultSearchPage";
+import ProtectedRoute from "./ProtectedRoute";
 
 export const router = createBrowserRouter([
     {
@@ -12,16 +13,11 @@ export const router = createBrowserRouter([
         element: <LoginPage />,
     },
     {
-        path: "/app",
-        element: <MainLayout />,
+        element: <ProtectedRoute />,
         children: [
             {
-                index: true,
-                element: (
-                    <div className="text-white">
-                        ArızaNet ana uygulama ekranı
-                    </div>
-                ),
+                path: "/faults",
+                element: <FaultSearchPage />,
             },
         ],
     },

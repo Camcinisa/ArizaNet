@@ -1,13 +1,50 @@
-﻿import loginBg from "../../../assets/login-bg.png";
+﻿import { useState } from "react";
+import type { FormEvent } from "react";
+import { useNavigate } from "react-router-dom";
+import loginBg from "../../../assets/login-bg.png";
+import { useAuthStore } from "../../../store/authStore";
+import { login } from "../services/authService";
 
 function LoginPage() {
+    const navigate = useNavigate();
+    const setLogin = useAuthStore((state) => state.setLogin);
+    const [showPassword, setShowPassword] = useState(false);
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [errorMessage, setErrorMessage] = useState("");
+
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        try {
+            setIsSubmitting(true);
+            setErrorMessage("");
+
+            const response = await login({
+                username: username.trim(),
+                password: password.trim(),
+            });
+
+            console.log("Login response:", response);
+
+            setLogin(response);
+            navigate("/faults", { replace: true });
+        } catch (error) {
+            console.error("Login hatası:", error);
+            setErrorMessage("Giriş sırasında hata oluştu. Konsolu kontrol et.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <main className="min-h-screen overflow-hidden bg-[#01040d] text-white">
             <div className="relative min-h-screen">
                 <img
                     src={loginBg}
                     alt="ArızaNet teknik servis arka planı"
-                    className="absolute inset-0 h-full w-full object-cover"
+                    className="absolute inset-0 h-full w-full object-contain"
                 />
                 <div className="absolute inset-0 bg-[#020713]/5" />
 
@@ -16,10 +53,22 @@ function LoginPage() {
                         <div className="w-full rounded-[1.65rem] border border-slate-300/30 bg-[#0b1726]/72 p-10 shadow-[0_24px_80px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md">
                             <div className="mb-9 text-center">
                                 <div className="mx-auto mb-7 flex h-[92px] w-[170px] items-center justify-center">
-                                    <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-full border border-cyan-400/35 bg-cyan-400/8 shadow-[0_0_34px_rgba(14,165,233,0.3)]">
-                                        <div className="absolute h-[126px] w-[126px] rounded-full border border-cyan-400/10" />
-                                        <div className="absolute h-[68px] w-[160px] border-y border-cyan-400/10" />
-                                        <span className="text-[42px] leading-none text-cyan-300">▣</span>
+                                    <div className="relative flex h-[92px] w-[92px] items-center justify-center rounded-full border border-sky-300/30 bg-[#102238]/75 shadow-[0_0_28px_rgba(59,130,246,0.22)]">
+                                        <div className="absolute h-[126px] w-[126px] rounded-full border border-sky-300/10" />
+                                        <div className="absolute h-[68px] w-[160px] border-y border-sky-300/10" />
+                                        <svg
+                                            aria-hidden="true"
+                                            viewBox="0 0 24 24"
+                                            className="h-10 w-10 text-sky-200"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                        >
+                                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                                            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                                        </svg>
                                     </div>
                                 </div>
 
@@ -31,17 +80,32 @@ function LoginPage() {
                                 </p>
                             </div>
 
-                            <form className="space-y-7">
+                            <form onSubmit={handleSubmit} className="space-y-7">
                                 <div>
                                     <label className="mb-3 block text-[17px] font-semibold text-slate-100">
                                         Kullanıcı Adı
                                     </label>
                                     <div className="flex h-[64px] items-center rounded-lg border border-slate-500/55 bg-[#0f1f31]/72 px-5 shadow-[inset_0_1px_8px_rgba(255,255,255,0.03)] transition focus-within:border-cyan-300 focus-within:ring-2 focus-within:ring-cyan-400/25">
-                                        <span className="mr-4 text-[28px] leading-none text-slate-400">♙</span>
+                                        <svg
+                                            aria-hidden="true"
+                                            viewBox="0 0 24 24"
+                                            className="mr-4 h-6 w-6 shrink-0 text-slate-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                        >
+                                            <path d="M20 21a8 8 0 0 0-16 0" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
                                         <input
                                             type="text"
+                                            value={username}
+                                            onChange={(event) => setUsername(event.target.value)}
                                             placeholder="Kullanıcı adınızı giriniz"
                                             className="min-w-0 flex-1 bg-transparent text-[18px] text-slate-100 outline-none placeholder:text-slate-500"
+                                            required
                                         />
                                     </div>
                                 </div>
@@ -51,13 +115,65 @@ function LoginPage() {
                                         Şifre
                                     </label>
                                     <div className="flex h-[64px] items-center rounded-lg border border-slate-500/55 bg-[#0f1f31]/72 px-5 shadow-[inset_0_1px_8px_rgba(255,255,255,0.03)] transition focus-within:border-cyan-300 focus-within:ring-2 focus-within:ring-cyan-400/25">
-                                        <span className="mr-4 text-[25px] leading-none text-slate-400">▣</span>
+                                        <svg
+                                            aria-hidden="true"
+                                            viewBox="0 0 24 24"
+                                            className="mr-4 h-6 w-6 shrink-0 text-slate-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                        >
+                                            <rect x="5" y="11" width="14" height="10" rx="2" />
+                                            <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                                        </svg>
                                         <input
-                                            type="password"
+                                            type={showPassword ? "text" : "password"}
+                                            value={password}
+                                            onChange={(event) => setPassword(event.target.value)}
                                             placeholder="Şifrenizi giriniz"
                                             className="min-w-0 flex-1 bg-transparent text-[18px] text-slate-100 outline-none placeholder:text-slate-500"
+                                            required
                                         />
-                                        <span className="ml-4 text-[28px] leading-none text-slate-400">⊙</span>
+                                        <button
+                                            type="button"
+                                            aria-label={showPassword ? "Şifreyi gizle" : "Şifreyi göster"}
+                                            onClick={() => setShowPassword((current) => !current)}
+                                            className="ml-4 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-700/45 hover:text-sky-200"
+                                        >
+                                            {showPassword ? (
+                                                <svg
+                                                    aria-hidden="true"
+                                                    viewBox="0 0 24 24"
+                                                    className="h-6 w-6"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+                                                    <path d="M6.61 6.61C3.99 8.38 2 12 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+                                                    <path d="M14.12 14.12a3 3 0 0 1-4.24-4.24" />
+                                                    <path d="M2 2l20 20" />
+                                                </svg>
+                                            ) : (
+                                                <svg
+                                                    aria-hidden="true"
+                                                    viewBox="0 0 24 24"
+                                                    className="h-6 w-6"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="2"
+                                                >
+                                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                                                    <circle cx="12" cy="12" r="3" />
+                                                </svg>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
 
@@ -73,24 +189,29 @@ function LoginPage() {
 
                                     <button
                                         type="button"
-                                        className="font-medium text-cyan-300 transition hover:text-cyan-200"
+                                        className="font-medium text-sky-300 transition hover:text-blue-200"
                                     >
                                         Şifremi unuttum
                                     </button>
                                 </div>
 
+                                {errorMessage && (
+                                    <p className="rounded-lg border border-red-400/30 bg-red-950/35 px-4 py-3 text-[15px] font-medium text-red-200">
+                                        {errorMessage}
+                                    </p>
+                                )}
+
                                 <button
                                     type="submit"
-                                    className="flex h-[67px] w-full items-center justify-center gap-4 rounded-lg bg-gradient-to-r from-cyan-400 to-blue-600 px-5 text-[19px] font-bold text-white shadow-[0_0_32px_rgba(14,165,233,0.42)] transition hover:scale-[1.01] hover:from-cyan-300 hover:to-blue-500"
+                                    disabled={isSubmitting}
+                                    className="flex h-[67px] w-full items-center justify-center gap-4 rounded-lg bg-gradient-to-r from-[#0e7490] to-[#1d4ed8] px-5 text-[19px] font-bold text-white shadow-[0_0_28px_rgba(37,99,235,0.34)] transition hover:scale-[1.01] hover:from-[#0891b2] hover:to-[#2563eb] disabled:cursor-not-allowed disabled:opacity-65"
                                 >
                                     <span className="text-[30px] leading-none">↪</span>
-                                    Giriş Yap
+                                    {isSubmitting ? "Giriş Yapılıyor..." : "Giriş Yap"}
                                 </button>
                             </form>
 
-                            <p className="mt-11 text-center text-[14px] text-slate-500">
-                                Yetkisiz erişim denemeleri kayıt altına alınır.
-                            </p>
+                            
                         </div>
                     </section>
                 </div>

@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../../../store/authStore";
 import type { FaultSolution } from "../types/fault.types";
 import { getFaultSolutions } from "../services/faultService";
 
@@ -11,6 +13,13 @@ type FaultForm = {
     solutionSteps: string;
     requiredTools: string;
     warnings: string;
+};
+
+type Confirmation = {
+    message: string;
+    confirmLabel: string;
+    variant: "save" | "delete";
+    onConfirm: () => void;
 };
 
 const emptyForm: FaultForm = {
@@ -145,7 +154,7 @@ function Icon({
     name,
     className = "h-5 w-5",
 }: {
-    name: "alert" | "menu" | "home" | "search" | "users" | "device" | "logout" | "plus" | "refresh" | "edit" | "trash" | "save" | "close" | "chevron" | "user";
+    name: "alert" | "menu" | "home" | "search" | "users" | "device" | "logout" | "plus" | "refresh" | "edit" | "trash" | "save" | "close" | "chevron" | "user" | "info";
     className?: string;
 }) {
     const common = {
@@ -259,19 +268,31 @@ function Icon({
                 <circle cx="12" cy="7" r="4" />
             </>
         ),
+        info: (
+            <>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 11v5" />
+                <path d="M12 8h.01" />
+            </>
+        ),
     };
 
     return <svg {...common}>{paths[name]}</svg>;
 }
 
 function FaultSearchPage() {
+    const navigate = useNavigate();
+    const logout = useAuthStore((state) => state.logout);
+    const user = useAuthStore((state) => state.user);
     const [faults, setFaults] = useState<FaultSolution[]>(sampleFaults);
     const [query, setQuery] = useState("");
     const [modelFilter, setModelFilter] = useState("");
     const [page, setPage] = useState(1);
-    const [pageSize, setPageSize] = useState(10);
+    const pageSize = 5;
     const [form, setForm] = useState<FaultForm>(emptyForm);
     const [editingId, setEditingId] = useState<number | null>(null);
+    const [detailFault, setDetailFault] = useState<FaultSolution | null>(null);
+    const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
     const [statusMessage, setStatusMessage] = useState("");
 
     useEffect(() => {
@@ -329,10 +350,9 @@ function FaultSearchPage() {
         setEditingId(null);
     };
 
-    const handleClearFilters = () => {
-        setQuery("");
-        setModelFilter("");
-        setPage(1);
+    const handleLogout = () => {
+        logout();
+        navigate("/login", { replace: true });
     };
 
     const handleEdit = (fault: FaultSolution) => {
@@ -349,16 +369,14 @@ function FaultSearchPage() {
         });
     };
 
-    const handleDelete = (id: number) => {
+    const deleteFault = (id: number) => {
         setFaults((current) => current.filter((fault) => fault.id !== id));
         if (editingId === id) {
             resetForm();
         }
     };
 
-    const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
+    const saveFault = () => {
         const nextFault: FaultSolution = {
             id: editingId ?? Date.now(),
             deviceModel: form.deviceModel.trim(),
@@ -390,9 +408,34 @@ function FaultSearchPage() {
         resetForm();
     };
 
+    const handleDelete = (id: number) => {
+        setConfirmation({
+            message: "Silmek istediğinize emin misiniz?",
+            confirmLabel: "Sil",
+            variant: "delete",
+            onConfirm: () => deleteFault(id),
+        });
+    };
+
+    const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        setConfirmation({
+            message: "Kaydetmek istediğinize emin misiniz?",
+            confirmLabel: "Kaydet",
+            variant: "save",
+            onConfirm: saveFault,
+        });
+    };
+
+    const handleConfirm = () => {
+        confirmation?.onConfirm();
+        setConfirmation(null);
+    };
+
     useEffect(() => {
         setPage(1);
-    }, [modelFilter, pageSize, query]);
+    }, [modelFilter, query]);
 
     useEffect(() => {
         if (page > totalPages) {
@@ -401,55 +444,54 @@ function FaultSearchPage() {
     }, [page, totalPages]);
 
     return (
-        <main className="min-h-screen bg-[#07111e] text-slate-100">
-            <div className="flex min-h-screen bg-[radial-gradient(circle_at_18%_12%,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_78%_4%,rgba(59,130,246,0.12),transparent_26%),linear-gradient(135deg,#07111e_0%,#0a1726_48%,#07101c_100%)]">
-                <aside className="hidden w-[252px] shrink-0 border-r border-slate-600/30 bg-[#06111d]/90 lg:flex lg:flex-col">
-                    <div className="flex h-[76px] items-center gap-3 border-b border-slate-600/30 px-6">
-                        <Icon name="alert" className="h-10 w-10 text-cyan-300" />
-                        <span className="text-3xl font-bold tracking-normal">ArızaNet</span>
+        <main className="h-screen overflow-hidden bg-[#07111e] text-slate-100">
+            <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_18%_12%,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_78%_4%,rgba(59,130,246,0.12),transparent_26%),linear-gradient(135deg,#07111e_0%,#0a1726_48%,#07101c_100%)]">
+                <aside className="hidden h-screen w-[252px] shrink-0 border-r border-slate-600/30 bg-[#06111d]/90 lg:flex lg:flex-col">
+                    <div className="flex h-[178px] flex-col items-center justify-center gap-3 border-b border-slate-600/30 px-6">
+                        <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-sky-300/30 bg-[#0b1e33] shadow-[0_0_34px_rgba(14,165,233,0.22),inset_0_1px_14px_rgba(255,255,255,0.05)]">
+                            <svg
+                                aria-hidden="true"
+                                viewBox="0 0 96 96"
+                                className="h-20 w-20"
+                                fill="none"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                            >
+                                <path d="M48 12 84 76H12L48 12Z" fill="#7f1d1d" stroke="#ef4444" strokeWidth="4" />
+                                <path d="M48 34v20" stroke="#fee2e2" strokeWidth="6" />
+                                <path d="M48 65h.01" stroke="#fee2e2" strokeWidth="7" />
+                            </svg>
+                        </div>
+                        <span className="bg-gradient-to-r from-cyan-200 via-sky-300 to-blue-500 bg-clip-text text-[30px] font-extrabold tracking-wide text-transparent drop-shadow-[0_0_12px_rgba(56,189,248,0.35)]">
+                            ArızaNet
+                        </span>
                     </div>
 
-                    <nav className="flex-1 space-y-2 px-4 py-8 text-[15px]">
-                        <button className="flex h-12 w-full items-center gap-3 rounded-md px-4 text-slate-300 transition hover:bg-slate-800/80 hover:text-white">
-                            <Icon name="home" />
-                            Dashboard
-                        </button>
-                        <button className="flex h-12 w-full items-center gap-3 rounded-md px-4 text-slate-300 transition hover:bg-slate-800/80 hover:text-white">
-                            <Icon name="search" />
-                            Hata Arama
-                        </button>
-                        <button className="flex h-12 w-full items-center gap-3 rounded-md bg-cyan-500/18 px-4 text-cyan-100 shadow-[inset_3px_0_0_rgba(34,211,238,0.9)]">
-                            <Icon name="users" />
+                    <nav className="flex-1 px-4 py-8 text-[17px]">
+                        <button className="flex h-14 w-full items-center gap-4 rounded-md bg-cyan-500/18 px-4 font-semibold text-cyan-100 shadow-[inset_3px_0_0_rgba(34,211,238,0.9)]">
+                            <Icon name="users" className="h-6 w-6" />
                             Hata Yönetimi
-                        </button>
-                        <button className="flex h-12 w-full items-center gap-3 rounded-md px-4 text-slate-300 transition hover:bg-slate-800/80 hover:text-white">
-                            <Icon name="users" />
-                            Kullanıcılar
-                        </button>
-                        <button className="flex h-12 w-full items-center gap-3 rounded-md px-4 text-slate-300 transition hover:bg-slate-800/80 hover:text-white">
-                            <Icon name="device" />
-                            Cihaz Modelleri
                         </button>
                     </nav>
 
                     <div className="p-4">
-                        <button className="flex h-12 w-full items-center gap-3 rounded-md border border-slate-600/40 px-4 text-slate-300 transition hover:border-red-400/50 hover:text-red-200">
-                            <Icon name="logout" />
+                        <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="flex h-14 w-full items-center gap-4 rounded-md border border-slate-600/40 px-4 text-[17px] text-slate-300 transition hover:border-red-400/50 hover:text-red-200"
+                        >
+                            <Icon name="logout" className="h-6 w-6" />
                             Çıkış
                         </button>
                     </div>
                 </aside>
 
-                <section className="min-w-0 flex-1">
-                    <header className="flex h-[76px] items-center justify-between border-b border-slate-600/30 bg-[#071422]/80 px-5 sm:px-7">
-                        <button className="flex h-10 w-10 items-center justify-center rounded-md text-slate-200 transition hover:bg-slate-800">
-                            <Icon name="menu" />
-                        </button>
-
+                <section className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+                    <header className="flex h-[76px] items-center justify-end border-b border-slate-600/30 bg-[#071422]/80 px-5 sm:px-7">
                         <div className="flex items-center gap-4">
                             <div className="hidden text-right sm:block">
-                                <p className="text-sm font-semibold text-white">Admin User</p>
-                                <p className="text-xs text-slate-400">Admin</p>
+                                <p className="text-sm font-semibold text-white">{user?.fullName || "Kullanıcı"}</p>
+                                <p className="text-xs text-slate-400">{user?.role || "User"}</p>
                             </div>
                             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-500/30 text-slate-200">
                                 <Icon name="user" className="h-6 w-6" />
@@ -457,36 +499,38 @@ function FaultSearchPage() {
                         </div>
                     </header>
 
-                    <div className="grid gap-6 p-5 xl:grid-cols-[minmax(0,1fr)_398px]">
-                        <div className="min-w-0 space-y-5">
+                    <div className="grid min-h-0 flex-1 gap-5 overflow-hidden p-4 xl:grid-cols-[minmax(0,1fr)_398px]">
+                        <div className="min-h-0 min-w-0 space-y-4 overflow-hidden">
                             <section>
-                                <h1 className="text-3xl font-bold tracking-normal text-white">Hata Kayıt Yönetimi</h1>
-                                <p className="mt-2 text-sm text-slate-300">
+                                <h1 className="text-[34px] font-bold tracking-normal text-white">Hata Kayıt Yönetimi</h1>
+                                <p className="mt-2 text-[15px] text-slate-300">
                                     Sistemde kayıtlı arıza çözümlerini izleyebilir, düzenleyebilir veya silebilirsiniz.
                                 </p>
                             </section>
 
-                            <section className="rounded-lg border border-slate-600/40 bg-[#0b1928]/78 p-4 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
-                                <div className="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_260px_124px_190px]">
-                                    <label className="flex h-12 items-center rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-slate-400 transition-within">
-                                        <Icon name="search" className="mr-3 h-5 w-5 shrink-0" />
+                            <section className="rounded-lg border border-slate-600/40 bg-[#0b1928]/78 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
+                                <div className="grid gap-4 lg:grid-cols-[minmax(220px,1fr)_260px]">
+                                    <label className="flex h-14 items-center rounded-md border border-slate-600/60 bg-[#0a1724] px-5 text-slate-400 transition-within">
+                                        <Icon name="search" className="mr-3 h-6 w-6 shrink-0" />
                                         <input
                                             value={query}
                                             onChange={(event) => setQuery(event.target.value)}
                                             placeholder="Hata kodu, başlık veya açıklama ara..."
-                                            className="min-w-0 flex-1 bg-transparent text-sm text-slate-100 outline-none placeholder:text-slate-500"
+                                            className="min-w-0 flex-1 bg-transparent text-[15px] text-slate-100 outline-none placeholder:text-slate-500"
                                         />
                                     </label>
 
-                                    <label className="relative flex h-12 items-center rounded-md border border-slate-600/60 bg-[#0a1724] px-4">
+                                    <label className="relative flex h-14 items-center rounded-md border border-slate-600/60 bg-[#0a1724] px-5">
                                         <select
                                             value={modelFilter}
                                             onChange={(event) => setModelFilter(event.target.value)}
-                                            className="h-full w-full appearance-none bg-transparent pr-8 text-sm text-slate-300 outline-none"
+                                            className="h-full w-full appearance-none bg-transparent pr-8 text-[15px] text-slate-300 outline-none"
                                         >
-                                            <option value="">Cihaz modeli seç</option>
+                                            <option value="" className="bg-[#0a1724] text-slate-100">
+                                                Cihaz modeli seç
+                                            </option>
                                             {deviceModels.map((model) => (
-                                                <option key={model} value={model}>
+                                                <option key={model} value={model} className="bg-[#0a1724] text-slate-100">
                                                     {model}
                                                 </option>
                                             ))}
@@ -494,84 +538,59 @@ function FaultSearchPage() {
                                         <Icon name="chevron" className="pointer-events-none absolute right-4 h-4 w-4 text-slate-400" />
                                     </label>
 
-                                    <button
-                                        type="button"
-                                        onClick={handleClearFilters}
-                                        className="flex h-12 items-center justify-center gap-2 rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm font-semibold text-slate-200 transition hover:border-slate-400/70 hover:bg-slate-800/80"
-                                    >
-                                        <Icon name="refresh" className="h-4 w-4" />
-                                        Temizle
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={resetForm}
-                                        className="flex h-12 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-blue-700 px-4 text-sm font-bold text-white shadow-[0_0_24px_rgba(14,165,233,0.28)] transition hover:from-cyan-500 hover:to-blue-600"
-                                    >
-                                        <Icon name="plus" className="h-5 w-5" />
-                                        Yeni Hata Kaydı
-                                    </button>
                                 </div>
                             </section>
 
                             <section className="rounded-lg border border-slate-600/40 bg-[#0b1928]/78 p-5 shadow-[0_18px_50px_rgba(0,0,0,0.28)]">
-                                <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="mb-3 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                     <div>
-                                        <h2 className="text-xl font-bold text-white">Hata Kayıtları</h2>
-                                        <p className="mt-1 text-sm text-slate-400">
+                                        <h2 className="text-2xl font-bold text-white">Hata Kayıtları</h2>
+                                        <p className="mt-1 text-[15px] text-slate-400">
                                             Toplam <span className="font-semibold text-cyan-300">{filteredFaults.length}</span> kayıt bulundu.
                                         </p>
                                     </div>
 
-                                    <label className="flex items-center gap-3 text-sm text-slate-300">
-                                        Sayfa başına
-                                        <select
-                                            value={pageSize}
-                                            onChange={(event) => setPageSize(Number(event.target.value))}
-                                            className="h-11 rounded-md border border-slate-600/60 bg-[#0a1724] px-3 text-slate-100 outline-none"
-                                        >
-                                            <option value={5}>5</option>
-                                            <option value={10}>10</option>
-                                            <option value={20}>20</option>
-                                        </select>
-                                    </label>
                                 </div>
 
                                 {statusMessage && (
-                                    <div className="mb-4 rounded-md border border-cyan-500/25 bg-cyan-500/8 px-4 py-3 text-sm text-cyan-100">
+                                    <div className="mb-3 rounded-md border border-cyan-500/25 bg-cyan-500/8 px-4 py-2.5 text-sm text-cyan-100">
                                         {statusMessage}
                                     </div>
                                 )}
 
                                 <div className="overflow-hidden rounded-md border border-slate-600/45">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full min-w-[930px] border-collapse text-left text-sm">
+                                        <table className="w-full min-w-[930px] border-collapse text-left text-[15px]">
                                             <thead className="bg-[#0c1a2a] text-xs font-semibold text-slate-300">
                                                 <tr>
-                                                    <th className="px-4 py-4">Cihaz Modeli</th>
-                                                    <th className="px-4 py-4">Hata Kodu</th>
-                                                    <th className="px-4 py-4">Başlık</th>
-                                                    <th className="px-4 py-4">Kısa Açıklama</th>
-                                                    <th className="px-4 py-4">Oluşturma Tarihi</th>
-                                                    <th className="px-4 py-4">İşlemler</th>
+                                                    <th className="px-5 py-4">Cihaz Modeli</th>
+                                                    <th className="px-5 py-4">Hata Kodu</th>
+                                                    <th className="px-5 py-4">Başlık</th>
+                                                    <th className="px-5 py-4">Oluşturma Tarihi</th>
+                                                    <th className="px-5 py-4">İşlemler</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {visibleFaults.map((fault) => (
                                                     <tr key={fault.id} className="border-t border-slate-600/35 transition hover:bg-cyan-500/6">
-                                                        <td className="px-4 py-4 font-medium text-slate-200">{fault.deviceModel}</td>
-                                                        <td className="px-4 py-4 text-slate-200">{fault.errorCode}</td>
-                                                        <td className="px-4 py-4 text-slate-100">{fault.title}</td>
-                                                        <td className="max-w-[300px] px-4 py-4 leading-5 text-slate-300">
-                                                            {fault.shortDescription || fault.description || "Açıklama bulunamadı."}
-                                                        </td>
-                                                        <td className="px-4 py-4 text-slate-300">{fault.createdAt || "-"}</td>
-                                                        <td className="px-4 py-4">
+                                                        <td className="px-5 py-4 font-medium text-slate-200">{fault.deviceModel}</td>
+                                                        <td className="px-5 py-4 text-slate-200">{fault.errorCode}</td>
+                                                        <td className="px-5 py-4 text-slate-100">{fault.title}</td>
+                                                        <td className="px-5 py-4 text-slate-300">{fault.createdAt || "-"}</td>
+                                                        <td className="px-5 py-4">
                                                             <div className="flex gap-2">
                                                                 <button
                                                                     type="button"
+                                                                    onClick={() => setDetailFault(fault)}
+                                                                    className="flex h-9 items-center gap-1.5 rounded-md border border-sky-500/55 px-2.5 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/12"
+                                                                >
+                                                                    <Icon name="info" className="h-4 w-4" />
+                                                                    Detay
+                                                                </button>
+                                                                <button
+                                                                    type="button"
                                                                     onClick={() => handleEdit(fault)}
-                                                                    className="flex h-9 items-center gap-2 rounded-md border border-cyan-500/55 px-3 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/12"
+                                                                    className="flex h-9 items-center gap-1.5 rounded-md border border-cyan-500/55 px-2.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/12"
                                                                 >
                                                                     <Icon name="edit" className="h-4 w-4" />
                                                                     Düzenle
@@ -579,7 +598,7 @@ function FaultSearchPage() {
                                                                 <button
                                                                     type="button"
                                                                     onClick={() => handleDelete(fault.id)}
-                                                                    className="flex h-9 items-center gap-2 rounded-md border border-red-500/60 px-3 text-xs font-semibold text-red-300 transition hover:bg-red-500/12"
+                                                                    className="flex h-9 items-center gap-1.5 rounded-md border border-red-500/60 px-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/12"
                                                                 >
                                                                     <Icon name="trash" className="h-4 w-4" />
                                                                     Sil
@@ -593,7 +612,7 @@ function FaultSearchPage() {
                                     </div>
                                 </div>
 
-                                <div className="mt-5 flex items-center justify-center gap-3">
+                                <div className="mt-4 flex items-center justify-center gap-3">
                                     <button
                                         type="button"
                                         onClick={() => setPage((current) => Math.max(1, current - 1))}
@@ -632,8 +651,8 @@ function FaultSearchPage() {
                             </section>
                         </div>
 
-                        <aside className="rounded-lg border border-slate-600/45 bg-[#0b1928]/88 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.38)]">
-                            <div className="mb-7 flex items-center justify-between gap-4">
+                        <aside className="min-h-0 max-h-full overflow-hidden rounded-lg border border-slate-600/45 bg-[#0b1928]/88 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.38)] xl:h-full">
+                            <div className="mb-3 flex items-center justify-between gap-4">
                                 <h2 className="text-2xl font-bold text-white">{editingId === null ? "Yeni Hata Kaydı" : "Hata Kaydını Düzenle"}</h2>
                                 <button
                                     type="button"
@@ -644,39 +663,39 @@ function FaultSearchPage() {
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSave} className="space-y-5">
-                                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-1">
+                            <form onSubmit={handleSave} className="space-y-2.5">
+                                <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-1">
                                     <label className="block">
-                                        <span className="mb-2 block text-sm font-semibold text-slate-100">Cihaz Modeli *</span>
+                                        <span className="mb-1.5 block text-sm font-semibold text-slate-100">Cihaz Modeli *</span>
                                         <input
                                             required
                                             value={form.deviceModel}
                                             onChange={(event) => setForm((current) => ({ ...current, deviceModel: event.target.value }))}
                                             placeholder="Örn: GFS220"
-                                            className="h-12 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
+                                            className="h-10 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
                                         />
                                     </label>
 
                                     <label className="block">
-                                        <span className="mb-2 block text-sm font-semibold text-slate-100">Hata Kodu *</span>
+                                        <span className="mb-1.5 block text-sm font-semibold text-slate-100">Hata Kodu *</span>
                                         <input
                                             required
                                             value={form.errorCode}
                                             onChange={(event) => setForm((current) => ({ ...current, errorCode: event.target.value }))}
                                             placeholder="Örn: 2201"
-                                            className="h-12 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
+                                            className="h-10 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
                                         />
                                     </label>
                                 </div>
 
                                 <label className="block">
-                                    <span className="mb-2 block text-sm font-semibold text-slate-100">Hata Başlığı *</span>
+                                    <span className="mb-1.5 block text-sm font-semibold text-slate-100">Hata Başlığı *</span>
                                     <input
                                         required
                                         value={form.title}
                                         onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
                                         placeholder="Örn: Besleme Sensörü Hatası"
-                                        className="h-12 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
+                                        className="h-10 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
                                     />
                                 </label>
 
@@ -688,7 +707,7 @@ function FaultSearchPage() {
                                     ["warnings", "Uyarılar", "Uyarıları giriniz...", false],
                                 ].map(([field, label, placeholder, required]) => (
                                     <label key={field as string} className="block">
-                                        <span className="mb-2 block text-sm font-semibold text-slate-100">{label as string}</span>
+                                        <span className="mb-1.5 block text-sm font-semibold text-slate-100">{label as string}</span>
                                         <textarea
                                             required={required as boolean}
                                             value={form[field as keyof FaultForm]}
@@ -699,29 +718,29 @@ function FaultSearchPage() {
                                                 }))
                                             }
                                             placeholder={placeholder as string}
-                                            className="min-h-[74px] w-full resize-y rounded-md border border-slate-600/60 bg-[#0a1724] px-4 py-3 text-sm leading-5 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
+                                            className="h-[48px] w-full resize-none rounded-md border border-slate-600/60 bg-[#0a1724] px-4 py-2 text-sm leading-5 text-slate-100 outline-none transition placeholder:text-slate-500 focus:border-cyan-400"
                                         />
                                     </label>
                                 ))}
 
-                                <div className="grid grid-cols-2 gap-4 pt-2">
+                                <div className="grid grid-cols-2 gap-3 pt-0.5">
                                     <button
                                         type="button"
                                         onClick={resetForm}
-                                        className="flex h-12 items-center justify-center rounded-md border border-slate-600/60 bg-[#0a1724] font-semibold text-slate-200 transition hover:bg-slate-800"
+                                        className="flex h-10 items-center justify-center rounded-md border border-slate-600/60 bg-[#0a1724] font-semibold text-slate-200 transition hover:bg-slate-800"
                                     >
                                         İptal
                                     </button>
                                     <button
                                         type="submit"
-                                        className="flex h-12 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-blue-700 font-bold text-white shadow-[0_0_24px_rgba(14,165,233,0.28)] transition hover:from-cyan-500 hover:to-blue-600"
+                                        className="flex h-10 items-center justify-center gap-2 rounded-md bg-gradient-to-r from-cyan-600 to-blue-700 font-bold text-white shadow-[0_0_24px_rgba(14,165,233,0.28)] transition hover:from-cyan-500 hover:to-blue-600"
                                     >
                                         <Icon name="save" className="h-5 w-5" />
                                         Kaydet
                                     </button>
                                 </div>
 
-                                <p className="text-sm text-slate-400">
+                                <p className="text-xs text-slate-400">
                                     <span className="font-bold text-red-400">*</span> zorunlu alanlardır.
                                 </p>
                             </form>
@@ -729,6 +748,88 @@ function FaultSearchPage() {
                     </div>
                 </section>
             </div>
+
+            {confirmation && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-6">
+                    <section className="w-full max-w-md rounded-lg border border-slate-500/45 bg-[#0b1928] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+                        <div className="mb-6 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">Onay</h2>
+                                <p className="mt-3 text-[16px] leading-6 text-slate-200">{confirmation.message}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setConfirmation(null)}
+                                className="flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                            >
+                                <Icon name="close" />
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setConfirmation(null)}
+                                className="flex h-11 items-center justify-center rounded-md border border-slate-600/60 bg-[#0a1724] font-semibold text-slate-200 transition hover:bg-slate-800"
+                            >
+                                İptal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleConfirm}
+                                className={`flex h-11 items-center justify-center rounded-md font-bold text-white shadow-[0_0_24px_rgba(14,165,233,0.24)] transition ${
+                                    confirmation.variant === "delete"
+                                        ? "bg-red-700 hover:bg-red-600"
+                                        : "bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600"
+                                }`}
+                            >
+                                {confirmation.confirmLabel}
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            )}
+
+            {detailFault && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-6">
+                    <section className="w-full max-w-3xl rounded-lg border border-slate-500/45 bg-[#0b1928] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.55)]">
+                        <div className="mb-5 flex items-start justify-between gap-4">
+                            <div>
+                                <h2 className="text-2xl font-bold text-white">{detailFault.title}</h2>
+                                <p className="mt-1 text-sm text-slate-400">
+                                    {detailFault.deviceModel} • {detailFault.errorCode}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setDetailFault(null)}
+                                className="flex h-10 w-10 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                            >
+                                <Icon name="close" />
+                            </button>
+                        </div>
+
+                        <div className="grid gap-4 text-sm text-slate-200 md:grid-cols-2">
+                            {[
+                                ["Cihaz Modeli", detailFault.deviceModel],
+                                ["Hata Kodu", detailFault.errorCode],
+                                ["Hata Başlığı", detailFault.title],
+                                ["Oluşturma Tarihi", detailFault.createdAt || "-"],
+                                ["Hata Açıklaması", detailFault.shortDescription || detailFault.description || "-"],
+                                ["Olası Nedenler", detailFault.possibleCauses || "-"],
+                                ["Çözüm Adımları", detailFault.solutionSteps || "-"],
+                                ["Gerekli Ekipmanlar", detailFault.requiredTools || "-"],
+                                ["Uyarılar", detailFault.warnings || "-"],
+                            ].map(([label, value]) => (
+                                <div key={label} className="rounded-md border border-slate-600/50 bg-[#071422] p-4">
+                                    <p className="mb-2 text-xs font-bold uppercase tracking-wide text-cyan-300">{label}</p>
+                                    <p className="leading-6 text-slate-100">{value}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                </div>
+            )}
         </main>
     );
 }

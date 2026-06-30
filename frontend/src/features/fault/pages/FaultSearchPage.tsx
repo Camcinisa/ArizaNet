@@ -18,7 +18,7 @@ type FaultForm = {
 type Confirmation = {
     message: string;
     confirmLabel: string;
-    variant: "save" | "delete";
+    variant: "save" | "delete" | "logout";
     onConfirm: () => void;
 };
 
@@ -32,6 +32,41 @@ const emptyForm: FaultForm = {
     requiredTools: "",
     warnings: "",
 };
+
+const STORED_FAULTS_KEY = "arizanet_fault_records";
+
+function getStoredFaults(): FaultSolution[] {
+    const storedFaults = localStorage.getItem(STORED_FAULTS_KEY);
+
+    if (!storedFaults) {
+        return [];
+    }
+
+    try {
+        const parsedFaults = JSON.parse(storedFaults);
+        return Array.isArray(parsedFaults) ? (parsedFaults as FaultSolution[]) : [];
+    } catch {
+        localStorage.removeItem(STORED_FAULTS_KEY);
+        return [];
+    }
+}
+
+function persistFaults(faults: FaultSolution[]) {
+    localStorage.setItem(STORED_FAULTS_KEY, JSON.stringify(faults));
+}
+
+function mergeFaults(serviceFaults: FaultSolution[], storedFaults: FaultSolution[]) {
+    const faultsById = new Map<number, FaultSolution>();
+
+    storedFaults.forEach((fault) => faultsById.set(fault.id, fault));
+    serviceFaults.forEach((fault) => {
+        if (!faultsById.has(fault.id)) {
+            faultsById.set(fault.id, fault);
+        }
+    });
+
+    return Array.from(faultsById.values());
+}
 
 const sampleFaults: FaultSolution[] = [
     {
@@ -284,7 +319,8 @@ function FaultSearchPage() {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
-    const [faults, setFaults] = useState<FaultSolution[]>(sampleFaults);
+    const isAdmin = user?.role === "Admin";
+    const [faults, setFaults] = useState<FaultSolution[]>(() => mergeFaults(sampleFaults, getStoredFaults()));
     const [query, setQuery] = useState("");
     const [modelFilter, setModelFilter] = useState("");
     const [page, setPage] = useState(1);
@@ -301,7 +337,7 @@ function FaultSearchPage() {
         getFaultSolutions()
             .then((data) => {
                 if (isMounted && data.length > 0) {
-                    setFaults(data);
+                    setFaults(mergeFaults(data, getStoredFaults()));
                 }
             })
             .catch(() => {
@@ -351,11 +387,22 @@ function FaultSearchPage() {
     };
 
     const handleLogout = () => {
-        logout();
-        navigate("/login", { replace: true });
+        setConfirmation({
+            message: "Çıkış yapmak istediğinize emin misiniz?",
+            confirmLabel: "Çıkış Yap",
+            variant: "logout",
+            onConfirm: () => {
+                logout();
+                navigate("/login", { replace: true });
+            },
+        });
     };
 
     const handleEdit = (fault: FaultSolution) => {
+        if (!isAdmin) {
+            return;
+        }
+
         setEditingId(fault.id);
         setForm({
             deviceModel: fault.deviceModel,
@@ -370,13 +417,25 @@ function FaultSearchPage() {
     };
 
     const deleteFault = (id: number) => {
-        setFaults((current) => current.filter((fault) => fault.id !== id));
+        if (!isAdmin) {
+            return;
+        }
+
+        setFaults((current) => {
+            const nextFaults = current.filter((fault) => fault.id !== id);
+            persistFaults(nextFaults);
+            return nextFaults;
+        });
         if (editingId === id) {
             resetForm();
         }
     };
 
     const saveFault = () => {
+        if (!isAdmin) {
+            return;
+        }
+
         const nextFault: FaultSolution = {
             id: editingId ?? Date.now(),
             deviceModel: form.deviceModel.trim(),
@@ -399,16 +458,24 @@ function FaultSearchPage() {
                     : faults.find((fault) => fault.id === editingId)?.createdAt,
         };
 
-        setFaults((current) =>
-            editingId === null
-                ? [nextFault, ...current]
-                : current.map((fault) => (fault.id === editingId ? { ...fault, ...nextFault } : fault))
-        );
+        setFaults((current) => {
+            const nextFaults =
+                editingId === null
+                    ? [nextFault, ...current]
+                    : current.map((fault) => (fault.id === editingId ? { ...fault, ...nextFault } : fault));
+
+            persistFaults(nextFaults);
+            return nextFaults;
+        });
         setStatusMessage(editingId === null ? "Yeni hata kaydı eklendi." : "Hata kaydı güncellendi.");
         resetForm();
     };
 
     const handleDelete = (id: number) => {
+        if (!isAdmin) {
+            return;
+        }
+
         setConfirmation({
             message: "Silmek istediğinize emin misiniz?",
             confirmLabel: "Sil",
@@ -419,6 +486,10 @@ function FaultSearchPage() {
 
     const handleSave = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+
+        if (!isAdmin) {
+            return;
+        }
 
         setConfirmation({
             message: "Kaydetmek istediğinize emin misiniz?",
@@ -499,12 +570,18 @@ function FaultSearchPage() {
                         </div>
                     </header>
 
-                    <div className="grid min-h-0 flex-1 gap-5 overflow-hidden p-4 xl:grid-cols-[minmax(0,1fr)_398px]">
+                    <div
+                        className={`grid min-h-0 flex-1 gap-5 overflow-hidden p-4 ${
+                            isAdmin ? "xl:grid-cols-[minmax(0,1fr)_398px]" : ""
+                        }`}
+                    >
                         <div className="min-h-0 min-w-0 space-y-4 overflow-hidden">
                             <section>
                                 <h1 className="text-[34px] font-bold tracking-normal text-white">Hata Kayıt Yönetimi</h1>
                                 <p className="mt-2 text-[15px] text-slate-300">
-                                    Sistemde kayıtlı arıza çözümlerini izleyebilir, düzenleyebilir veya silebilirsiniz.
+                                    {isAdmin
+                                        ? "Sistemde kayıtlı arıza çözümlerini izleyebilir, düzenleyebilir veya silebilirsiniz."
+                                        : "Sistemde kayıtlı arıza çözümlerini ve yeni eklenen kayıtları izleyebilirsiniz."}
                                 </p>
                             </section>
 
@@ -587,22 +664,26 @@ function FaultSearchPage() {
                                                                     <Icon name="info" className="h-4 w-4" />
                                                                     Detay
                                                                 </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleEdit(fault)}
-                                                                    className="flex h-9 items-center gap-1.5 rounded-md border border-cyan-500/55 px-2.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/12"
-                                                                >
-                                                                    <Icon name="edit" className="h-4 w-4" />
-                                                                    Düzenle
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => handleDelete(fault.id)}
-                                                                    className="flex h-9 items-center gap-1.5 rounded-md border border-red-500/60 px-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/12"
-                                                                >
-                                                                    <Icon name="trash" className="h-4 w-4" />
-                                                                    Sil
-                                                                </button>
+                                                                {isAdmin && (
+                                                                    <>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleEdit(fault)}
+                                                                            className="flex h-9 items-center gap-1.5 rounded-md border border-cyan-500/55 px-2.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-500/12"
+                                                                        >
+                                                                            <Icon name="edit" className="h-4 w-4" />
+                                                                            Düzenle
+                                                                        </button>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => handleDelete(fault.id)}
+                                                                            className="flex h-9 items-center gap-1.5 rounded-md border border-red-500/60 px-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/12"
+                                                                        >
+                                                                            <Icon name="trash" className="h-4 w-4" />
+                                                                            Sil
+                                                                        </button>
+                                                                    </>
+                                                                )}
                                                             </div>
                                                         </td>
                                                     </tr>
@@ -651,6 +732,7 @@ function FaultSearchPage() {
                             </section>
                         </div>
 
+                        {isAdmin && (
                         <aside className="min-h-0 max-h-full overflow-hidden rounded-lg border border-slate-600/45 bg-[#0b1928]/88 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.38)] xl:h-full">
                             <div className="mb-3 flex items-center justify-between gap-4">
                                 <h2 className="text-2xl font-bold text-white">{editingId === null ? "Yeni Hata Kaydı" : "Hata Kaydını Düzenle"}</h2>
@@ -745,6 +827,7 @@ function FaultSearchPage() {
                                 </p>
                             </form>
                         </aside>
+                        )}
                     </div>
                 </section>
             </div>
@@ -778,7 +861,7 @@ function FaultSearchPage() {
                                 type="button"
                                 onClick={handleConfirm}
                                 className={`flex h-11 items-center justify-center rounded-md font-bold text-white shadow-[0_0_24px_rgba(14,165,233,0.24)] transition ${
-                                    confirmation.variant === "delete"
+                                    confirmation.variant === "delete" || confirmation.variant === "logout"
                                         ? "bg-red-700 hover:bg-red-600"
                                         : "bg-gradient-to-r from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600"
                                 }`}

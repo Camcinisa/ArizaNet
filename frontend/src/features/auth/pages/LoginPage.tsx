@@ -32,7 +32,7 @@ function LoginPage() {
             navigate("/faults", { replace: true });
         } catch (error) {
             console.error("Login hatası:", error);
-            setErrorMessage("Giriş sırasında hata oluştu. Konsolu kontrol et.");
+            setErrorMessage("Giriş sırasında hata oluştu. Lütfen kullanıcı adı ya da parolanızı kontrol ediniz.");
         } finally {
             setIsSubmitting(false);
         }

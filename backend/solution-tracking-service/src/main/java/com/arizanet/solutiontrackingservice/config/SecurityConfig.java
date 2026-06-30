@@ -32,8 +32,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"
                         ).permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/api/solution-tracking").hasRole("USER")
-                        .requestMatchers(HttpMethod.GET, "/api/solution-tracking/**").hasRole("USER")
+                        .requestMatchers(HttpMethod.POST, "/api/solution-tracking").hasAnyRole("USER", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/solution-tracking", "/api/solution-tracking/**").hasAnyRole("USER", "ADMIN")
 
                         .anyRequest().authenticated()
                 )

@@ -111,7 +111,7 @@ function LoginPage() {
                 removeRememberedPassword(username);
             }
 
-            setLogin(response);
+            setLogin(response, username.trim());
             navigate("/faults", { replace: true });
         } catch (error) {
             console.error("Login hatası:", error);

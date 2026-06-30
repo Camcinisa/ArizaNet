@@ -189,7 +189,7 @@ function Icon({
     name,
     className = "h-5 w-5",
 }: {
-    name: "alert" | "menu" | "home" | "search" | "users" | "device" | "logout" | "plus" | "refresh" | "edit" | "trash" | "save" | "close" | "chevron" | "user" | "info";
+    name: "alert" | "menu" | "search" | "users" | "device" | "logout" | "plus" | "refresh" | "edit" | "trash" | "save" | "close" | "chevron" | "user" | "info";
     className?: string;
 }) {
     const common = {
@@ -216,13 +216,6 @@ function Icon({
                 <path d="M4 7h16" />
                 <path d="M4 12h16" />
                 <path d="M4 17h16" />
-            </>
-        ),
-        home: (
-            <>
-                <path d="M3 11 12 4l9 7" />
-                <path d="M5 10v10h14V10" />
-                <path d="M9 20v-6h6v6" />
             </>
         ),
         search: (
@@ -538,10 +531,21 @@ function FaultSearchPage() {
                         </span>
                     </div>
 
-                    <nav className="flex-1 px-4 py-8 text-[17px]">
-                        <button className="flex h-14 w-full items-center gap-4 rounded-md bg-cyan-500/18 px-4 font-semibold text-cyan-100 shadow-[inset_3px_0_0_rgba(34,211,238,0.9)]">
+                    <nav className="flex-1 space-y-2 px-4 py-8 text-[17px]">
+                        <button
+                            type="button"
+                            className="flex h-14 w-full items-center gap-4 rounded-md bg-cyan-500/18 px-4 font-semibold text-cyan-100 shadow-[inset_3px_0_0_rgba(34,211,238,0.9)]"
+                        >
                             <Icon name="users" className="h-6 w-6" />
                             Hata Yönetimi
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => navigate("/solution-trackings")}
+                            className="flex h-14 w-full items-center gap-4 rounded-md px-4 text-slate-300 transition hover:bg-slate-800/80 hover:text-white"
+                        >
+                            <Icon name="info" className="h-6 w-6" />
+                            Çözüm Takibi
                         </button>
                     </nav>
 

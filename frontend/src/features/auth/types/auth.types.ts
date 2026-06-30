@@ -12,6 +12,7 @@ export interface LoginResponse {
 }
 
 export interface AuthUser {
+    username: string;
     fullName: string;
     role: UserRole;
 }

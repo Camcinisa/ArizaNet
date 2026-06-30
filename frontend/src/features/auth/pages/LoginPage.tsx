@@ -5,14 +5,82 @@ import loginBg from "../../../assets/login-bg.png";
 import { useAuthStore } from "../../../store/authStore";
 import { login } from "../services/authService";
 
+const REMEMBERED_PASSWORDS_KEY = "arizanet:remembered-passwords";
+
+function getRememberedPasswords(): Record<string, string> {
+    const rememberedPasswords = localStorage.getItem(REMEMBERED_PASSWORDS_KEY);
+
+    if (!rememberedPasswords) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(rememberedPasswords) as Record<string, string>;
+    } catch {
+        localStorage.removeItem(REMEMBERED_PASSWORDS_KEY);
+        return {};
+    }
+}
+
+function getRememberedPassword(username: string) {
+    return getRememberedPasswords()[username.trim()] ?? "";
+}
+
+function hasRememberedPassword(username: string) {
+    return Boolean(getRememberedPasswords()[username.trim()]);
+}
+
+function setRememberedPassword(username: string, password: string) {
+    const normalizedUsername = username.trim();
+
+    if (!normalizedUsername) {
+        return;
+    }
+
+    localStorage.setItem(
+        REMEMBERED_PASSWORDS_KEY,
+        JSON.stringify({
+            ...getRememberedPasswords(),
+            [normalizedUsername]: password,
+        }),
+    );
+}
+
+function removeRememberedPassword(username: string) {
+    const normalizedUsername = username.trim();
+
+    if (!normalizedUsername) {
+        return;
+    }
+
+    const rememberedPasswords = getRememberedPasswords();
+    delete rememberedPasswords[normalizedUsername];
+    localStorage.setItem(REMEMBERED_PASSWORDS_KEY, JSON.stringify(rememberedPasswords));
+}
+
 function LoginPage() {
     const navigate = useNavigate();
     const setLogin = useAuthStore((state) => state.setLogin);
     const [showPassword, setShowPassword] = useState(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+    const [rememberMe, setRememberMe] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
+
+    const handleUsernameChange = (value: string) => {
+        setUsername(value);
+
+        const rememberedPassword = getRememberedPassword(value);
+        if (rememberedPassword) {
+            setPassword(rememberedPassword);
+            setRememberMe(true);
+            return;
+        }
+
+        setPassword("");
+        setRememberMe(false);
+    };
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -23,10 +91,25 @@ function LoginPage() {
 
             const response = await login({
                 username: username.trim(),
-                password: password.trim(),
+                password,
             });
 
             console.log("Login response:", response);
+
+            if (rememberMe && !hasRememberedPassword(username)) {
+                const shouldRememberPassword = window.confirm("Bu kullanıcı için şifre kaydedilsin mi?");
+
+                if (shouldRememberPassword) {
+                    setRememberedPassword(username, password);
+                } else {
+                    removeRememberedPassword(username);
+                    setRememberMe(false);
+                }
+            } else if (rememberMe) {
+                setRememberedPassword(username, password);
+            } else {
+                removeRememberedPassword(username);
+            }
 
             setLogin(response);
             navigate("/faults", { replace: true });
@@ -102,8 +185,10 @@ function LoginPage() {
                                         <input
                                             type="text"
                                             value={username}
-                                            onChange={(event) => setUsername(event.target.value)}
+                                            onChange={(event) => handleUsernameChange(event.target.value)}
                                             placeholder="Kullanıcı adınızı giriniz"
+                                            autoComplete="username"
+                                            name="username"
                                             className="min-w-0 flex-1 bg-transparent text-[18px] text-slate-100 outline-none placeholder:text-slate-500"
                                             required
                                         />
@@ -133,6 +218,8 @@ function LoginPage() {
                                             value={password}
                                             onChange={(event) => setPassword(event.target.value)}
                                             placeholder="Şifrenizi giriniz"
+                                            autoComplete={rememberMe ? "current-password" : "off"}
+                                            name="password"
                                             className="min-w-0 flex-1 bg-transparent text-[18px] text-slate-100 outline-none placeholder:text-slate-500"
                                             required
                                         />
@@ -181,18 +268,14 @@ function LoginPage() {
                                     <label className="flex items-center gap-3 text-slate-200">
                                         <input
                                             type="checkbox"
-                                            defaultChecked
+                                            checked={rememberMe}
+                                            onChange={(event) => setRememberMe(event.target.checked)}
                                             className="h-6 w-6 rounded border-slate-500 accent-cyan-400"
                                         />
-                                        Beni hatırla
+                                        Beni Hatırla
                                     </label>
 
-                                    <button
-                                        type="button"
-                                        className="font-medium text-sky-300 transition hover:text-blue-200"
-                                    >
-                                        Şifremi unuttum
-                                    </button>
+
                                 </div>
 
                                 {errorMessage && (

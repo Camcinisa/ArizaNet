@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
+import DashboardShell from "../../../app/DashboardShell";
 import type { FaultSolution } from "../types/fault.types";
 import { getFaultSolutions } from "../services/faultService";
 
@@ -508,9 +509,9 @@ function FaultSearchPage() {
     }, [page, totalPages]);
 
     return (
-        <main className="h-screen overflow-hidden bg-[#07111e] text-slate-100">
+        <DashboardShell activePage="faults">
             <div className="flex h-screen overflow-hidden bg-[radial-gradient(circle_at_18%_12%,rgba(14,165,233,0.16),transparent_28%),radial-gradient(circle_at_78%_4%,rgba(59,130,246,0.12),transparent_26%),linear-gradient(135deg,#07111e_0%,#0a1726_48%,#07101c_100%)]">
-                <aside className="hidden h-screen w-[252px] shrink-0 border-r border-slate-600/30 bg-[#06111d]/90 lg:flex lg:flex-col">
+                <aside className="hidden">
                     <div className="flex h-[178px] flex-col items-center justify-center gap-3 border-b border-slate-600/30 px-6">
                         <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-sky-300/30 bg-[#0b1e33] shadow-[0_0_34px_rgba(14,165,233,0.22),inset_0_1px_14px_rgba(255,255,255,0.05)]">
                             <svg
@@ -917,7 +918,7 @@ function FaultSearchPage() {
                     </section>
                 </div>
             )}
-        </main>
+        </DashboardShell>
     );
 }
 

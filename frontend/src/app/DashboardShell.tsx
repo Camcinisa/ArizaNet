@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 
-type ActivePage = "faults" | "solution-trackings";
+type ActivePage = "faults" | "solution-trackings" | "devices";
 
 type DashboardShellProps = {
     activePage: ActivePage;
@@ -14,7 +14,7 @@ function ShellIcon({
     name,
     className = "h-6 w-6",
 }: {
-    name: "faults" | "solution" | "logout";
+    name: "faults" | "solution" | "devices" | "logout";
     className?: string;
 }) {
     const common = {
@@ -42,6 +42,13 @@ function ShellIcon({
                 <path d="M12 7v5l3 2" />
             </>
         ),
+        devices: (
+            <>
+                <path d="m21 8-9-5-9 5 9 5 9-5Z" />
+                <path d="M3 8v8l9 5 9-5V8" />
+                <path d="M12 13v8" />
+            </>
+        ),
         logout: (
             <>
                 <path d="M10 17 15 12l-5-5" />
@@ -57,6 +64,8 @@ function ShellIcon({
 function DashboardShell({ activePage, children }: DashboardShellProps) {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
+    const user = useAuthStore((state) => state.user);
+    const isAdmin = user?.role === "Admin";
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
     const handleLogout = () => {
@@ -67,6 +76,7 @@ function DashboardShell({ activePage, children }: DashboardShellProps) {
     const items = [
         { id: "faults" as const, label: "Hata Yönetimi", path: "/faults", icon: "faults" as const },
         { id: "solution-trackings" as const, label: "Çözüm Takibi", path: "/solution-trackings", icon: "solution" as const },
+        { id: "devices" as const, label: "Cihaz Yönetimi", path: "/devices", icon: "devices" as const },
     ];
 
     return (
@@ -86,7 +96,7 @@ function DashboardShell({ activePage, children }: DashboardShellProps) {
                 </div>
 
                 <nav className="flex-1 space-y-2 px-4 py-8 text-[17px]">
-                    {items.map((item) => {
+                    {items.filter((item) => item.id !== "devices" || isAdmin).map((item) => {
                         const isActive = activePage === item.id;
 
                         return (

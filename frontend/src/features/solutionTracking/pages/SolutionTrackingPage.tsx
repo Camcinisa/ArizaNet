@@ -324,6 +324,10 @@ function formatDate(value?: string) {
     }).format(date);
 }
 
+function getDisplayRole(role?: string | null) {
+    return role === "User" ? "Teknisyen" : role || "-";
+}
+
 function SolutionTrackingPage() {
     const navigate = useNavigate();
     const user = useAuthStore((state) => state.user);
@@ -364,6 +368,13 @@ function SolutionTrackingPage() {
             setTrackings(data);
             setSelectedId((current) => current ?? data[0]?.id ?? null);
         } catch {
+            if (!isAdmin) {
+                const localTrackings = getStoredUserTrackings(user?.username);
+                setTrackings(localTrackings);
+                setSelectedId(localTrackings[0]?.id ?? null);
+                return;
+            }
+
             setErrorMessage("Çözüm takip kayıtları yüklenirken bir sorun oluştu.");
         } finally {
             setLoading(false);
@@ -709,7 +720,7 @@ function SolutionTrackingPage() {
                         <div className="ml-auto flex items-center gap-3 border-l border-slate-700/60 pl-4">
                             <div className="hidden text-right sm:block">
                                 <p className="text-sm font-bold text-white">{user?.fullName || "Teknisyen"}</p>
-                                <p className="text-xs text-slate-400">{user?.role || "-"}</p>
+                                <p className="text-xs text-slate-400">{getDisplayRole(user?.role)}</p>
                             </div>
                             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/70 bg-slate-700/50 text-slate-200">
                                 <Icon name="user" className="h-5 w-5" />
@@ -1236,7 +1247,7 @@ function SolutionTrackingPage() {
                 <div className="flex items-center gap-3 border-l border-slate-700/60 pl-4">
                     <div className="hidden text-right sm:block">
                         <p className="text-sm font-bold text-white">{user?.fullName || "Kullanıcı"}</p>
-                        <p className="text-xs text-slate-400">{user?.role || "-"}</p>
+                        <p className="text-xs text-slate-400">{getDisplayRole(user?.role)}</p>
                     </div>
                     <div className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-600/70 bg-slate-700/50 text-slate-200">
                         <Icon name="user" className="h-5 w-5" />

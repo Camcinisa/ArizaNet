@@ -1,6 +1,7 @@
 package com.arizanet.userservice.service;
 
 import com.arizanet.userservice.dto.request.CreateUserRequest;
+import com.arizanet.userservice.dto.request.UpdateUserContactRequest;
 import com.arizanet.userservice.dto.request.UpdateUserStatusRequest;
 import com.arizanet.userservice.dto.response.UserDetailResponse;
 import com.arizanet.userservice.dto.response.UserListResponse;
@@ -71,6 +72,18 @@ public class UserService {
         } else {
             user.setStatus("Pasif");
         }
+
+        User updatedUser = userRepository.save(user);
+
+        return mapToDetailResponse(updatedUser);
+    }
+
+    public UserDetailResponse updateUserContact(Long id, UpdateUserContactRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi. ID: " + id));
+
+        user.setEmail(request.getEmail());
+        user.setPhone(request.getPhone());
 
         User updatedUser = userRepository.save(user);
 

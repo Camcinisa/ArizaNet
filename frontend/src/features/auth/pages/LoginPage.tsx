@@ -112,7 +112,7 @@ function LoginPage() {
             }
 
             setLogin(response, username.trim());
-            navigate("/faults", { replace: true });
+            navigate(response.role === "Admin" ? "/users" : "/profile", { replace: true });
         } catch (error) {
             console.error("Login hatası:", error);
             setErrorMessage("Giriş sırasında hata oluştu. Lütfen kullanıcı adı ya da parolanızı kontrol ediniz.");

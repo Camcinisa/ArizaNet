@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "../store/authStore";
 
-type ActivePage = "faults" | "solution-trackings" | "devices";
+type ActivePage = "faults" | "solution-trackings" | "devices" | "users" | "profile";
 
 type DashboardShellProps = {
     activePage: ActivePage;
@@ -14,7 +14,7 @@ function ShellIcon({
     name,
     className = "h-6 w-6",
 }: {
-    name: "faults" | "solution" | "devices" | "logout";
+    name: "faults" | "solution" | "devices" | "users" | "profile" | "logout";
     className?: string;
 }) {
     const common = {
@@ -49,6 +49,20 @@ function ShellIcon({
                 <path d="M12 13v8" />
             </>
         ),
+        users: (
+            <>
+                <path d="M16 21a6 6 0 0 0-12 0" />
+                <circle cx="10" cy="8" r="4" />
+                <path d="M22 21a5 5 0 0 0-4-4.9" />
+                <path d="M18 4.5a3 3 0 0 1 0 6" />
+            </>
+        ),
+        profile: (
+            <>
+                <path d="M20 21a8 8 0 0 0-16 0" />
+                <circle cx="12" cy="7" r="4" />
+            </>
+        ),
         logout: (
             <>
                 <path d="M10 17 15 12l-5-5" />
@@ -76,7 +90,9 @@ function DashboardShell({ activePage, children }: DashboardShellProps) {
     const items = [
         { id: "faults" as const, label: "Hata Yönetimi", path: "/faults", icon: "faults" as const },
         { id: "solution-trackings" as const, label: "Çözüm Takibi", path: "/solution-trackings", icon: "solution" as const },
+        { id: "profile" as const, label: "Profilim", path: "/profile", icon: "profile" as const },
         { id: "devices" as const, label: "Cihaz Yönetimi", path: "/devices", icon: "devices" as const },
+        { id: "users" as const, label: "Kullanıcı Yönetimi", path: "/users", icon: "users" as const },
     ];
 
     return (
@@ -96,7 +112,17 @@ function DashboardShell({ activePage, children }: DashboardShellProps) {
                 </div>
 
                 <nav className="flex-1 space-y-2 px-4 py-8 text-[17px]">
-                    {items.filter((item) => item.id !== "devices" || isAdmin).map((item) => {
+                    {items.filter((item) => {
+                        if (item.id === "devices" || item.id === "users") {
+                            return isAdmin;
+                        }
+
+                        if (item.id === "profile") {
+                            return !isAdmin;
+                        }
+
+                        return true;
+                    }).map((item) => {
                         const isActive = activePage === item.id;
 
                         return (

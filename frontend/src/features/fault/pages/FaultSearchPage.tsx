@@ -309,6 +309,10 @@ function Icon({
     return <svg {...common}>{paths[name]}</svg>;
 }
 
+function getDisplayRole(role?: string | null) {
+    return role === "User" ? "Teknisyen" : role || "Teknisyen";
+}
+
 function FaultSearchPage() {
     const navigate = useNavigate();
     const logout = useAuthStore((state) => state.logout);
@@ -567,7 +571,7 @@ function FaultSearchPage() {
                         <div className="flex items-center gap-4">
                             <div className="hidden text-right sm:block">
                                 <p className="text-sm font-semibold text-white">{user?.fullName || "Kullanıcı"}</p>
-                                <p className="text-xs text-slate-400">{user?.role || "User"}</p>
+                                <p className="text-xs text-slate-400">{getDisplayRole(user?.role)}</p>
                             </div>
                             <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-500/30 text-slate-200">
                                 <Icon name="user" className="h-6 w-6" />

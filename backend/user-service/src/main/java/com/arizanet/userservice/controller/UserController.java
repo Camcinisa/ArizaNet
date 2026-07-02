@@ -1,6 +1,7 @@
 package com.arizanet.userservice.controller;
 
 import com.arizanet.userservice.dto.request.CreateUserRequest;
+import com.arizanet.userservice.dto.request.UpdateUserContactRequest;
 import com.arizanet.userservice.dto.request.UpdateUserStatusRequest;
 import com.arizanet.userservice.dto.response.UserDetailResponse;
 import com.arizanet.userservice.dto.response.UserListResponse;
@@ -46,5 +47,12 @@ public class UserController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserStatusRequest request) {
         return userService.updateUserStatus(id, request);
+    }
+
+    @PatchMapping("/{id}/contact")
+    public UserDetailResponse updateUserContact(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserContactRequest request) {
+        return userService.updateUserContact(id, request);
     }
 }

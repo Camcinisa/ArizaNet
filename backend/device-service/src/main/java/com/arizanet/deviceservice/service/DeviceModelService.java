@@ -76,6 +76,16 @@ public class DeviceModelService {
         deviceModelRepository.save(deviceModel);
     }
 
+    public DeviceModelResponse activateModel(Long id) {
+        DeviceModel deviceModel = deviceModelRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Model bulunamadı"));
+
+        deviceModel.setActive(true);
+        DeviceModel updatedModel = deviceModelRepository.save(deviceModel);
+
+        return mapToResponse(updatedModel);
+    }
+
     private DeviceModelResponse mapToResponse(DeviceModel deviceModel) {
         return new DeviceModelResponse(
                 deviceModel.getId(),

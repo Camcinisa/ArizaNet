@@ -48,4 +48,9 @@ public class DeviceModelController {
     public void passiveModel(@PathVariable Long id) {
         deviceModelService.passiveModel(id);
     }
+
+    @PatchMapping("/{id}/activate")
+    public DeviceModelResponse activateModel(@PathVariable Long id) {
+        return deviceModelService.activateModel(id);
+    }
 }

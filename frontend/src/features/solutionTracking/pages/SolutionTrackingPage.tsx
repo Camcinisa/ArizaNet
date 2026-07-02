@@ -8,7 +8,14 @@ import {
     getSolutionTrackings,
     getSolutionTrackingsByUsername,
 } from "../services/solutionTrackingService";
+import {
+    getMostUsedDeviceModels,
+    getMostUsedErrorCodes,
+    getReportSummary,
+    getUserActivity,
+} from "../services/reportService";
 import type { SolutionStatus, SolutionTracking } from "../types/solutionTracking.types";
+import type { ReportItem, ReportSummary } from "../types/report.types";
 import { getFaultSolutions } from "../../fault/services/faultService";
 import type { FaultSolution } from "../../fault/types/fault.types";
 
@@ -27,6 +34,11 @@ const statusClasses: Record<SolutionStatus, string> = {
 const USER_TRACKINGS_STORAGE_KEY = "arizanet:user-solution-trackings";
 const USER_TRACKINGS_PAGE_SIZE = 4;
 const ADMIN_TRACKINGS_PAGE_SIZE = 8;
+const emptyReportSummary: ReportSummary = {
+    totalTrackingCount: 0,
+    successCount: 0,
+    failedCount: 0,
+};
 
 function getStoredUserTrackings(username?: string): SolutionTracking[] {
     if (!username) {
@@ -319,6 +331,10 @@ function SolutionTrackingPage() {
     const isAdmin = user?.role === "Admin";
     const [trackings, setTrackings] = useState<SolutionTracking[]>([]);
     const [faultSolutions, setFaultSolutions] = useState<FaultSolution[]>([]);
+    const [reportSummary, setReportSummary] = useState<ReportSummary>(emptyReportSummary);
+    const [reportErrorCodes, setReportErrorCodes] = useState<ReportItem[]>([]);
+    const [reportDeviceModels, setReportDeviceModels] = useState<ReportItem[]>([]);
+    const [reportUserActivity, setReportUserActivity] = useState<ReportItem[]>([]);
     const [query, setQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<SolutionStatus | "">("");
     const [loading, setLoading] = useState(false);
@@ -354,9 +370,35 @@ function SolutionTrackingPage() {
         }
     };
 
+    const loadReports = async () => {
+        if (!isAdmin) {
+            return;
+        }
+
+        try {
+            const [summary, errorCodes, deviceModels, userActivity] = await Promise.all([
+                getReportSummary(),
+                getMostUsedErrorCodes(),
+                getMostUsedDeviceModels(),
+                getUserActivity(),
+            ]);
+
+            setReportSummary(summary);
+            setReportErrorCodes(errorCodes);
+            setReportDeviceModels(deviceModels);
+            setReportUserActivity(userActivity);
+        } catch {
+            setErrorMessage("Rapor verileri yüklenirken bir sorun oluştu.");
+        }
+    };
+
     useEffect(() => {
         loadTrackings();
     }, [isAdmin, user?.username]);
+
+    useEffect(() => {
+        loadReports();
+    }, [isAdmin]);
 
     useEffect(() => {
         if (isAdmin) {
@@ -412,22 +454,13 @@ function SolutionTrackingPage() {
 
     const topErrorRecords = useMemo(
         () =>
-            Array.from(
-                filteredTrackings.reduce((records, tracking) => {
-                    const key = `${tracking.deviceModel}||${tracking.errorCode}`;
-                    const current = records.get(key) ?? {
-                        key,
-                        deviceModel: tracking.deviceModel || "-",
-                        errorCode: tracking.errorCode || "-",
-                        count: 0,
-                    };
-                    records.set(key, { ...current, count: current.count + 1 });
-                    return records;
-                }, new Map<string, { key: string; deviceModel: string; errorCode: string; count: number }>()).values(),
-            )
-                .sort((first, second) => second.count - first.count || first.errorCode.localeCompare(second.errorCode, "tr-TR"))
-                .slice(0, 3),
-        [filteredTrackings],
+            reportErrorCodes.slice(0, 3).map((record, index) => ({
+                key: `${record.name}-${index}`,
+                deviceModel: reportDeviceModels[index]?.name || "-",
+                errorCode: record.name || "-",
+                count: record.count,
+            })),
+        [reportDeviceModels, reportErrorCodes],
     );
     const topErrorCount = Math.max(1, ...topErrorRecords.map((record) => record.count));
     const topErrorTotal = topErrorRecords.reduce((total, record) => total + record.count, 0);
@@ -449,7 +482,7 @@ function SolutionTrackingPage() {
             .join(", ");
     }, [topErrorRecords, topErrorTotal]);
 
-    const topTechnicians = useMemo(
+    const topTechniciansFromTrackings = useMemo(
         () =>
             Array.from(
                 filteredTrackings.reduce((records, tracking) => {
@@ -462,6 +495,19 @@ function SolutionTrackingPage() {
                 .sort((first, second) => second.count - first.count || first.username.localeCompare(second.username, "tr-TR"))
                 .slice(0, 3),
         [filteredTrackings],
+    );
+
+    const topTechnicians = useMemo(
+        () =>
+            isAdmin
+                ? reportUserActivity
+                      .map((record) => ({
+                          username: record.name || "Atanmamış",
+                          count: record.count,
+                      }))
+                      .slice(0, 3)
+                : topTechniciansFromTrackings,
+        [isAdmin, reportUserActivity, topTechniciansFromTrackings],
     );
 
     useEffect(() => {
@@ -477,7 +523,7 @@ function SolutionTrackingPage() {
         setAdminTrackingsPage(1);
     }, [query, statusFilter]);
 
-    const counts = useMemo(
+    const countsFromTrackings = useMemo(
         () => ({
             open: trackings.filter((tracking) => tracking.resultStatus === "IN_PROGRESS").length,
             solved: trackings.filter((tracking) => tracking.resultStatus === "SUCCESS").length,
@@ -486,6 +532,20 @@ function SolutionTrackingPage() {
             technicians: new Set(trackings.map((tracking) => tracking.username).filter(Boolean)).size,
         }),
         [trackings],
+    );
+
+    const counts = useMemo(
+        () =>
+            isAdmin
+                ? {
+                      open: Math.max(0, reportSummary.totalTrackingCount - reportSummary.successCount - reportSummary.failedCount),
+                      solved: reportSummary.successCount,
+                      waiting: reportSummary.failedCount,
+                      total: reportSummary.totalTrackingCount,
+                      technicians: reportUserActivity.length,
+                  }
+                : countsFromTrackings,
+        [countsFromTrackings, isAdmin, reportSummary, reportUserActivity],
     );
 
     const deviceModels = useMemo(

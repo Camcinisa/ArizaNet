@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuthStore } from "../../../store/authStore";
 import DashboardShell from "../../../app/DashboardShell";
 import type { FaultSolution } from "../types/fault.types";
-import { getFaultSolutions } from "../services/faultService";
+import { createFaultSolution, deleteFaultSolution, getFaultSolutions, updateFaultSolution } from "../services/faultService";
+import { getActiveDeviceModels } from "../../devices/services/deviceService";
+import type { DeviceModel } from "../../devices/types/device.types";
 
 type FaultForm = {
-    deviceModel: string;
+    deviceModelId: string;
     errorCode: string;
     title: string;
     shortDescription: string;
@@ -24,7 +26,7 @@ type Confirmation = {
 };
 
 const emptyForm: FaultForm = {
-    deviceModel: "",
+    deviceModelId: "",
     errorCode: "",
     title: "",
     shortDescription: "",
@@ -313,8 +315,23 @@ function getDisplayRole(role?: string | null) {
     return role === "User" ? "Teknisyen" : role || "Teknisyen";
 }
 
+function getDeviceOptionLabel(device: DeviceModel) {
+    return `${device.modelName} - Model No: ${device.id} - External ID: ${device.externalModelId ?? "-"}`;
+}
+
+function formatCurrentDateTime() {
+    return new Intl.DateTimeFormat("tr-TR", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+    }).format(new Date());
+}
+
 function FaultSearchPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const logout = useAuthStore((state) => state.logout);
     const user = useAuthStore((state) => state.user);
     const isAdmin = user?.role === "Admin";
@@ -328,6 +345,7 @@ function FaultSearchPage() {
     const [detailFault, setDetailFault] = useState<FaultSolution | null>(null);
     const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
     const [statusMessage, setStatusMessage] = useState("");
+    const [devices, setDevices] = useState<DeviceModel[]>([]);
 
     useEffect(() => {
         let isMounted = true;
@@ -348,6 +366,34 @@ function FaultSearchPage() {
             isMounted = false;
         };
     }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        getActiveDeviceModels()
+            .then((data) => {
+                if (isMounted) {
+                    setDevices([...data].sort((first, second) => first.modelName.localeCompare(second.modelName, "tr-TR")));
+                }
+            })
+            .catch(() => {
+                if (isMounted) {
+                    setStatusMessage("Cihaz listesi yüklenemedi. Hata kaydı için cihaz seçimi yapılamayabilir.");
+                }
+            });
+
+        return () => {
+            isMounted = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        const selectedDeviceModelId = (location.state as { deviceModelId?: number } | null)?.deviceModelId;
+
+        if (selectedDeviceModelId) {
+            setForm((current) => ({ ...current, deviceModelId: String(selectedDeviceModelId) }));
+        }
+    }, [location.state]);
 
     const deviceModels = useMemo(
         () => Array.from(new Set(faults.map((fault) => fault.deviceModel))).sort(),
@@ -402,8 +448,9 @@ function FaultSearchPage() {
         }
 
         setEditingId(fault.id);
+        const matchingDevice = devices.find((device) => device.modelName === fault.deviceModel);
         setForm({
-            deviceModel: fault.deviceModel,
+            deviceModelId: fault.deviceModelId ? String(fault.deviceModelId) : matchingDevice ? String(matchingDevice.id) : "",
             errorCode: fault.errorCode,
             title: fault.title,
             shortDescription: fault.shortDescription || fault.description || "",
@@ -414,57 +461,75 @@ function FaultSearchPage() {
         });
     };
 
-    const deleteFault = (id: number) => {
+    const deleteFault = async (id: number) => {
         if (!isAdmin) {
             return;
         }
 
-        setFaults((current) => {
-            const nextFaults = current.filter((fault) => fault.id !== id);
-            persistFaults(nextFaults);
-            return nextFaults;
-        });
-        if (editingId === id) {
-            resetForm();
+        try {
+            await deleteFaultSolution(id);
+            setFaults((current) => {
+                const nextFaults = current.filter((fault) => fault.id !== id);
+                persistFaults(nextFaults);
+                return nextFaults;
+            });
+            if (editingId === id) {
+                resetForm();
+            }
+            setStatusMessage("Hata kaydı silindi.");
+        } catch {
+            setStatusMessage("Hata kaydı silinirken bir sorun oluştu.");
         }
     };
 
-    const saveFault = () => {
+    const saveFault = async () => {
         if (!isAdmin) {
             return;
         }
 
-        const nextFault: FaultSolution = {
-            id: editingId ?? Date.now(),
-            deviceModel: form.deviceModel.trim(),
+        const selectedDevice = devices.find((device) => device.id === Number(form.deviceModelId));
+
+        if (!selectedDevice) {
+            setStatusMessage("Lütfen bir cihaz modeli seçin.");
+            return;
+        }
+
+        const payload = {
+            deviceModelId: selectedDevice.id,
             errorCode: form.errorCode.trim(),
             title: form.title.trim(),
-            shortDescription: form.shortDescription.trim(),
+            description: form.shortDescription.trim(),
             possibleCauses: form.possibleCauses.trim(),
             solutionSteps: form.solutionSteps.trim(),
             requiredTools: form.requiredTools.trim(),
             warnings: form.warnings.trim(),
-            createdAt:
-                editingId === null
-                    ? new Intl.DateTimeFormat("tr-TR", {
-                          day: "2-digit",
-                          month: "2-digit",
-                          year: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                      }).format(new Date())
-                    : faults.find((fault) => fault.id === editingId)?.createdAt,
         };
 
-        setFaults((current) => {
-            const nextFaults =
-                editingId === null
-                    ? [nextFault, ...current]
-                    : current.map((fault) => (fault.id === editingId ? { ...fault, ...nextFault } : fault));
+        try {
+            const savedFault =
+                editingId === null ? await createFaultSolution(payload) : await updateFaultSolution(editingId, payload);
+            const currentFault = faults.find((fault) => fault.id === editingId);
+            const normalizedFault: FaultSolution = {
+                ...savedFault,
+                deviceModelId: savedFault.deviceModelId ?? selectedDevice.id,
+                deviceModel: savedFault.deviceModel || selectedDevice.modelName,
+                shortDescription: savedFault.shortDescription || savedFault.description || payload.description,
+                createdAt: savedFault.createdAt ?? currentFault?.createdAt ?? formatCurrentDateTime(),
+            };
 
-            persistFaults(nextFaults);
-            return nextFaults;
-        });
+            setFaults((current) => {
+                const nextFaults =
+                    editingId === null
+                        ? [normalizedFault, ...current]
+                        : current.map((fault) => (fault.id === editingId ? { ...fault, ...normalizedFault } : fault));
+
+                persistFaults(nextFaults);
+                return nextFaults;
+            });
+        } catch {
+            setStatusMessage("Hata kaydı kaydedilirken bir sorun oluştu.");
+            return;
+        }
         setStatusMessage(editingId === null ? "Yeni hata kaydı eklendi." : "Hata kaydı güncellendi.");
         resetForm();
     };
@@ -542,7 +607,7 @@ function FaultSearchPage() {
                             className="flex h-14 w-full items-center gap-4 rounded-md bg-cyan-500/18 px-4 font-semibold text-cyan-100 shadow-[inset_3px_0_0_rgba(34,211,238,0.9)]"
                         >
                             <Icon name="users" className="h-6 w-6" />
-                            Hata Yönetimi
+                            Hata Kayıtları
                         </button>
                         <button
                             type="button"
@@ -586,7 +651,7 @@ function FaultSearchPage() {
                     >
                         <div className="min-h-0 min-w-0 space-y-4 overflow-hidden">
                             <section>
-                                <h1 className="text-[34px] font-bold tracking-normal text-white">Hata Kayıt Yönetimi</h1>
+                                <h1 className="text-[34px] font-bold tracking-normal text-white">Hata Kayıtları</h1>
                                 <p className="mt-2 text-[15px] text-slate-300">
                                     {isAdmin
                                         ? "Sistemde kayıtlı arıza çözümlerini izleyebilir, düzenleyebilir veya silebilirsiniz."
@@ -745,26 +810,27 @@ function FaultSearchPage() {
                         <aside className="min-h-0 max-h-full overflow-hidden rounded-lg border border-slate-600/45 bg-[#0b1928]/88 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.38)] xl:h-full">
                             <div className="mb-3 flex items-center justify-between gap-4">
                                 <h2 className="text-2xl font-bold text-white">{editingId === null ? "Yeni Hata Kaydı" : "Hata Kaydını Düzenle"}</h2>
-                                <button
-                                    type="button"
-                                    onClick={resetForm}
-                                    className="flex h-9 w-9 items-center justify-center rounded-md text-slate-300 transition hover:bg-slate-800 hover:text-white"
-                                >
-                                    <Icon name="close" />
-                                </button>
                             </div>
 
                             <form onSubmit={handleSave} className="space-y-2.5">
                                 <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-1">
                                     <label className="block">
                                         <span className="mb-1.5 block text-sm font-semibold text-slate-100">Cihaz Modeli *</span>
-                                        <input
+                                        <select
                                             required
-                                            value={form.deviceModel}
-                                            onChange={(event) => setForm((current) => ({ ...current, deviceModel: event.target.value }))}
-                                            placeholder="Örn: GFS220"
+                                            value={form.deviceModelId}
+                                            onChange={(event) => setForm((current) => ({ ...current, deviceModelId: event.target.value }))}
                                             className="h-10 w-full rounded-md border border-slate-600/60 bg-[#0a1724] px-4 text-sm text-slate-100 outline-none transition focus:border-cyan-400"
-                                        />
+                                        >
+                                            <option value="" className="bg-[#0a1724] text-slate-100">
+                                                Cihaz seçin
+                                            </option>
+                                            {devices.map((device) => (
+                                                <option key={device.id} value={device.id} className="bg-[#0a1724] text-slate-100">
+                                                    {getDeviceOptionLabel(device)}
+                                                </option>
+                                            ))}
+                                        </select>
                                     </label>
 
                                     <label className="block">

@@ -88,7 +88,7 @@ function DashboardShell({ activePage, children }: DashboardShellProps) {
     };
 
     const items = [
-        { id: "faults" as const, label: "Hata Yönetimi", path: "/faults", icon: "faults" as const },
+        { id: "faults" as const, label: "Hata Kayıtları", path: "/faults", icon: "faults" as const },
         { id: "solution-trackings" as const, label: "Çözüm Takibi", path: "/solution-trackings", icon: "solution" as const },
         { id: "profile" as const, label: "Profilim", path: "/profile", icon: "profile" as const },
         { id: "devices" as const, label: "Cihaz Yönetimi", path: "/devices", icon: "devices" as const },

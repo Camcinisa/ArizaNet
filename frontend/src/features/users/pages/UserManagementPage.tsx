@@ -205,6 +205,13 @@ function normalizeUserRole(user: UserListItem): UserListItem {
     const roleText = normalizeText(user.role);
     const statusText = normalizeText(user.status);
 
+    if (roleText === "admin") {
+        return {
+            ...user,
+            role: "Admin",
+        };
+    }
+
     if (
         roleText === "user" ||
         roleText === "teknisyen" ||
@@ -686,7 +693,6 @@ function UserManagementPage() {
                             <div className="flex h-full min-h-0 flex-col">
                                 <div className="mb-5 flex items-start justify-between gap-4">
                                     <div>
-                                        <p className="mb-3 text-sm font-semibold text-slate-400">USR-{String(selectedUser.id).padStart(5, "0")}</p>
                                         <h2 className="text-xl font-bold text-white">Kullanıcı Detay Paneli</h2>
                                     </div>
                                     <span className={`rounded-md px-2.5 py-1 text-xs font-bold ${selectedUser.active ? "bg-emerald-500/14 text-emerald-300" : "bg-red-500/14 text-red-300"}`}>
@@ -717,7 +723,6 @@ function UserManagementPage() {
                                         ["Telefon", selectedUser.phone || "-", "phone" as const],
                                         ["Rol", selectedUser.role, "shield" as const],
                                         ["Durum", selectedUser.active ? "Aktif" : "Pasif", selectedUser.active ? "check" as const : "pause" as const],
-                                        ["Açıklama", selectedUser.status || "-", "user" as const],
                                     ].map(([label, value, icon]) => (
                                         <div key={label as string} className="grid grid-cols-[22px_1fr] gap-3">
                                             <Icon name={icon as "mail" | "phone" | "shield" | "check" | "pause" | "user"} className="mt-0.5 h-4 w-4 text-sky-400" />
@@ -755,7 +760,6 @@ function UserManagementPage() {
                             <div className="mb-6 flex items-start justify-between gap-4">
                                 <div>
                                     <h2 className="text-2xl font-bold text-white">Yeni Kullanıcı Ekle</h2>
-                                    <p className="mt-2 text-sm text-slate-400">Kullanıcı hesabı User Service üzerinden oluşturulur.</p>
                                 </div>
                                 <button
                                     type="button"

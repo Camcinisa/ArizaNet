@@ -10,6 +10,7 @@ import lombok.Setter;
 public class FaultSolutionDetailResponse {
 
     private Long id;
+    private Long deviceModelId;
     private String deviceModel;
     private String errorCode;
     private String title;

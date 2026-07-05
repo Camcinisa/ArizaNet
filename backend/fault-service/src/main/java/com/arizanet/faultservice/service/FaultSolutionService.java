@@ -91,6 +91,7 @@ public class FaultSolutionService {
     private FaultSolutionListResponse mapToListResponse(FaultSolution faultSolution) {
         return new FaultSolutionListResponse(
                 faultSolution.getId(),
+                faultSolution.getDeviceModel().getId(),
                 faultSolution.getDeviceModel().getModelName(),
                 faultSolution.getErrorCode(),
                 faultSolution.getTitle(),
@@ -101,6 +102,7 @@ public class FaultSolutionService {
     private FaultSolutionDetailResponse mapToDetailResponse(FaultSolution faultSolution) {
         return new FaultSolutionDetailResponse(
                 faultSolution.getId(),
+                faultSolution.getDeviceModel().getId(),
                 faultSolution.getDeviceModel().getModelName(),
                 faultSolution.getErrorCode(),
                 faultSolution.getTitle(),

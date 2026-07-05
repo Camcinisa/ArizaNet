@@ -1,5 +1,6 @@
 export type FaultSolution = {
     id: number;
+    deviceModelId?: number;
     deviceModel: string;
     errorCode: string;
     title: string;
@@ -15,4 +16,15 @@ export type FaultSolution = {
 
 export type FaultSearchParams = {
     query: string;
+};
+
+export type FaultSolutionPayload = {
+    deviceModelId: number;
+    errorCode: string;
+    title: string;
+    description: string;
+    possibleCauses: string;
+    solutionSteps: string;
+    requiredTools?: string;
+    warnings?: string;
 };

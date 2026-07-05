@@ -1465,13 +1465,8 @@ function SolutionTrackingPage() {
                                 <div>
                                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-400">
                                         ARZ-{String(selectedTracking.id).padStart(6, "0")}
-                                        <Icon name="pin" className="h-4 w-4" />
                                     </div>
                                     <h2 className="text-xl font-bold text-white">{selectedTracking.errorCode} Çözüm Kaydı</h2>
-                                </div>
-                                <div className="flex gap-2 text-slate-400">
-                                    <Icon name="share" className="h-5 w-5" />
-                                    <Icon name="close" className="h-5 w-5" />
                                 </div>
                             </div>
 

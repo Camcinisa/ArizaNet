@@ -30,7 +30,7 @@ function UserProfilePage() {
     }
 
     if (user.role === "Admin") {
-        return <Navigate to="/users" replace />;
+        return <Navigate to="/faults" replace />;
     }
 
     return <ProfilePage />;
